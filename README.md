@@ -2,6 +2,9 @@
 
 A web application that uses AI to find visually similar products from a database using OpenAI's CLIP model. Upload an image or provide an image URL, and the system will return visually similar products ranked by similarity score.
 
+<img width="1107" height="681" alt="image" src="https://github.com/user-attachments/assets/e077b66b-308f-49ba-beb9-287790b9465b" />
+
+
 ## Technologies Used
 
 ### Frontend
