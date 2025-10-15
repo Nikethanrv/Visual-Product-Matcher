@@ -51,7 +51,7 @@ export default function HomePage() {
       }
 
         try {
-          const { data } = await axios.post("http://localhost:3000/api/matches",
+          const { data } = await axios.post("https://visual-product-matcher-production-5731.up.railway.app/api/matches",
             formData,
             {
               headers: { "Content-Type": "multipart/form-data"}
