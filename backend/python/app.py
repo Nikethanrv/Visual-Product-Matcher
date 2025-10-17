@@ -7,10 +7,11 @@ from typing import List
 import requests
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
 import torch
-import clip
+import open_clip
 import torch.nn as nn
 
 try:
@@ -19,10 +20,7 @@ except:
     pass
 
 # Force CPU usage and aggressive memory optimization
-torch.cuda.is_available = lambda: False
 device = "cpu"
-
-# Set memory efficient settings
 torch.set_num_threads(1)
 torch.set_grad_enabled(False)
 
@@ -30,15 +28,23 @@ def cleanup_memory():
     """Aggressive memory cleanup"""
     gc.collect()
     torch.cuda.empty_cache() if torch.cuda.is_available() else None
-    if torch.cuda.is_available():
-        torch.cuda.synchronize()
 
-# Initialize FastAPI
+# Initialize FastAPI with CORS
 app = FastAPI(title="Image Matcher")
 
-# Load model only once and use the smallest available model
-model, preprocess = clip.load("ViT-B/16", device=device, jit=True)
-model.eval()  # Set to evaluation mode
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Load model only once and use an efficient model
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32-quickgelu', pretrained='laion400m_e32')
+model = model.to(device)
+model.eval()
     
 # Function to process image with memory optimization
 def process_image(image_data):
