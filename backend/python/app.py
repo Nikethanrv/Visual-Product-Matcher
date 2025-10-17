@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import gc
 from typing import List
 
 import requests
@@ -17,7 +18,16 @@ try:
 except:
     pass
 
+# Force CPU usage and memory optimization
+torch.cuda.is_available = lambda: False
+device = "cpu"
+
+# Initialize FastAPI with CORS
 app = FastAPI(title="Image Matcher")
+
+# Load model only once and use the smallest available model
+model, preprocess = clip.load("ViT-B/32", device=device, jit=True)
+model.eval()  # Set to evaluation mode
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 MODEL_NAME = os.environ.get("CLIP_MODEL", "ViT-B/32")
