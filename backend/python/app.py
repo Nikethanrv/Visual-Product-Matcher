@@ -18,35 +18,59 @@ try:
 except:
     pass
 
-# Force CPU usage and memory optimization
+# Force CPU usage and aggressive memory optimization
 torch.cuda.is_available = lambda: False
 device = "cpu"
 
-# Initialize FastAPI with CORS
+# Set memory efficient settings
+torch.set_num_threads(1)
+torch.set_grad_enabled(False)
+
+def cleanup_memory():
+    """Aggressive memory cleanup"""
+    gc.collect()
+    torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+# Initialize FastAPI
 app = FastAPI(title="Image Matcher")
 
 # Load model only once and use the smallest available model
-model, preprocess = clip.load("ViT-B/32", device=device, jit=True)
+model, preprocess = clip.load("ViT-B/16", device=device, jit=True)
 model.eval()  # Set to evaluation mode
+    
+# Function to process image with memory optimization
+def process_image(image_data):
+    try:
+        if isinstance(image_data, bytes):
+            image = Image.open(io.BytesIO(image_data))
+        else:
+            image = Image.open(image_data)
+            
+        # Convert to RGB if needed
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+            
+        # Resize image to a smaller size before preprocessing to save memory
+        max_size = 224  # CLIP's required size
+        image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        
+        # Process image
+        image_input = preprocess(image).unsqueeze(0).to(device)
+        
+        # Clear original image from memory
+        image.close()
+        del image
+        cleanup_memory()
+        
+        return image_input
+    except Exception as e:
+        cleanup_memory()
+        raise e
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-MODEL_NAME = os.environ.get("CLIP_MODEL", "ViT-B/32")
-
-print("Device:", DEVICE)
-model, preprocess = clip.load(MODEL_NAME, device=DEVICE)
-model.eval()
-
+# Initialize cosine similarity
 cos = nn.CosineSimilarity(dim=0)
-
-def load_image_from_bytes(b: bytes) -> Image.Image:
-    img = Image.open(io.BytesIO(b)).convert("RGB")
-    return img
-
-def load_image_from_url(url: str) -> Image.Image:
-    response = requests.get(url, timeout=10)
-    if response.status_code != 200:
-        raise ValueError(f"Failed to get {url} (status {response.status_code})")
-    return load_image_from_bytes(response.content)
 
 @app.post("/match-images")
 async def match_images(
@@ -60,38 +84,59 @@ async def match_images(
     except Exception:
         raise HTTPException(status_code=400, detail="image_urls must be a JSON list string")
     
-    content = await file.read()
     try:
-        input_img = load_image_from_bytes(content)
+        # Process input image with memory optimization
+        content = await file.read()
+        input_tensor = process_image(content)
+        
+        with torch.no_grad():
+            input_features = model.encode_image(input_tensor)
+            input_features = input_features / input_features.norm(dim=-1, keepdim=True)
+        
+        # Clear input tensor from memory
+        del input_tensor
+        cleanup_memory()
+
+        results = []
+        for url in urls:
+            try:
+                response = requests.get(url, timeout=10)
+                if response.status_code != 200:
+                    raise ValueError(f"Failed to get {url}")
+                
+                # Process comparison image with memory optimization
+                img_tensor = process_image(response.content)
+                
+                with torch.no_grad():
+                    feats = model.encode_image(img_tensor)
+                    feats = feats / feats.norm(dim=-1, keepdim=True)
+                    sim = cos(feats[0], input_features[0]).item()
+                    sim_norm = (sim + 1.0) / 2.0
+                
+                # Clear tensors from memory
+                del feats
+                del img_tensor
+                cleanup_memory()
+                
+                results.append({"image_url": url, "similarity": round(sim_norm, 4)})
+            except Exception as e:
+                cleanup_memory()
+                results.append({"image_url": url, "error": str(e)})
+        
+        sorted_results = sorted(
+            [r for r in results if "similarity" in r],
+            key=lambda x: x["similarity"],
+            reverse=True
+        )
+        
+        # Final cleanup
+        del input_features
+        cleanup_memory()
+        
+        return JSONResponse(sorted_results)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Uploaded image invalid: {e}")
-    
-    with torch.no_grad():
-        input_tensor = preprocess(input_img).unsqueeze(0).to(DEVICE)
-        input_features = model.encode_image(input_tensor)
-        input_features = input_features / input_features.norm(dim=-1, keepdim=True)
-
-    results = []
-    for url in urls:
-        try:
-            img = load_image_from_url(url)
-            with torch.no_grad():
-                t = preprocess(img).unsqueeze(0).to(DEVICE)
-                feats = model.encode_image(t)
-                feats = feats / feats.norm(dim=-1, keepdim=True)
-                sim = cos(feats[0], input_features[0]).item()
-                sim_norm = (sim + 1.0) / 2.0
-            results.append({"image_url": url, "similarity": round(sim_norm, 4)})
-        except Exception as e:
-            results.append({"image_url": url, "error": str(e)})
-    
-    sorted_results = sorted(
-        [r for r in results if "similarity" in r],
-        key=lambda x: x["similarity"],
-        reverse=True
-    )
-
-    return JSONResponse(sorted_results)
+        cleanup_memory()
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
