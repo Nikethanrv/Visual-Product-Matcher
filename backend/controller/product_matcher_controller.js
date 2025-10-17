@@ -2,7 +2,7 @@ import axios from 'axios'
 import FormData from 'form-data'
 import fs from 'fs'
 import { client } from "../config/db.js"
-import { DATABASE, COLLECTION } from "../config/index.js"
+import { DATABASE, COLLECTION, PYTHON_SERVICE_URL } from "../config/index.js"
 
 export const get_matches = async (req, res) => {
     try {
@@ -36,7 +36,7 @@ export const get_matches = async (req, res) => {
         
         form.append("image_urls", JSON.stringify(image_urls))
 
-        const response = await axios.post("http://localhost:8000/match-images",
+        const response = await axios.post(`${PYTHON_SERVICE_URL}/match-images`,
             form,
             {            
                 headers: form.getHeaders(),
