@@ -10,6 +10,13 @@ Hosting URL (Python Microservice not deployed): https://visual-product-matcher-t
 
 <img width="1107" height="681" alt="image" src="https://github.com/user-attachments/assets/e077b66b-308f-49ba-beb9-287790b9465b" />
 
+<img alt="image" src="E:\MCA\Placements\Unthinkable Solutions\ss1.png" />
+
+<img alt="image" src="E:\MCA\Placements\Unthinkable Solutions\ss2.png" />
+
+<img alt="image" src="E:\MCA\Placements\Unthinkable Solutions\ss3.png" />
+
+
 
 ## Technologies Used
 
