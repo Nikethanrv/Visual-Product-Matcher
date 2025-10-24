@@ -7,6 +7,5 @@ Pillow==9.5.0
 requests==2.31.0
 transformers
 torch
-torchvision
 open_clip_torch
 python-multipart

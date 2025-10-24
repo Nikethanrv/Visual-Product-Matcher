@@ -42,7 +42,7 @@ app.add_middleware(
 )
 
 # Load model only once and use an efficient model
-model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32-quickgelu', pretrained='laion400m_e32')
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-L-14-quickgelu')
 model = model.to(device)
 model.eval()
     
