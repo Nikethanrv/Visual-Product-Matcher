@@ -3,7 +3,7 @@ uvicorn==0.22.0
 ftfy==6.1.1
 regex==2023.5.5
 tqdm==4.65.0
-Pillow==9.5.0
+Pillow
 requests==2.31.0
 transformers
 torch
