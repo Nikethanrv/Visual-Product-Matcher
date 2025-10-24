@@ -1,6 +1,6 @@
 import { useState } from "react"
 import axios from 'axios'
-import process from 'process'
+import { API_URL } from "../config/api";
 
 export default function HomePage() {
     const [img, setImg] = useState(null)
@@ -10,9 +10,7 @@ export default function HomePage() {
 
     const [error, setError] = useState(null)
     const [loading, setLoading] = useState(false)
-
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
+    
     const handleImageChange = (e) => {
         const file = e.target.files[0]
         if (file) {
@@ -54,7 +52,7 @@ export default function HomePage() {
       }
 
         try {
-          const { data } = await axios.post(`${backendUrl}/api/matches`,
+          const { data } = await axios.post(`${API_URL}/api/matches`,
             formData,
             {
               headers: { "Content-Type": "multipart/form-data"}
