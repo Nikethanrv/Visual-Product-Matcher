@@ -6,9 +6,7 @@ A web application that uses AI to find visually similar products from a database
 
 Due to resource limitations on free-tier hosting platforms, the Python microservice for this project (which uses the CLIP model for image similarity) could not be deployed alongside the Node.js backend. The microservice requires GPU support and significant storage for model weights, which exceeds the limits of most free hosting solutions.
 
-For demonstration and testing purposes, the backend can be run locally, and the microservice can be invoked via a locally hosted instance or a dedicated cloud environment that supports GPU workloads.
-
-The project is fully functional locally, and all code and instructions are provided to run both frontend and backend services.
+Hosting URL (Python Microservice not deployed): https://visual-product-matcher-tawny.vercel.app/
 
 <img width="1107" height="681" alt="image" src="https://github.com/user-attachments/assets/e077b66b-308f-49ba-beb9-287790b9465b" />
 
